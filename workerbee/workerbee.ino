@@ -16,8 +16,8 @@ BLEBas  blebas;
 
 void setup() {
   Serial.begin(115200);
-  Serial.println("Buzzkill Worker Bee");
-  Serial.println(`);
+  Serial.print("Buzzkill Worker Bee: ");
+  Serial.println(WORKERBEE_NAME);
   Serial.println("--------------------------------");
 
   setupLights();
@@ -110,7 +110,35 @@ void disconnect_callback(uint16_t conn_handle, uint8_t reason)
   Serial.println("Disconnected");
 }
 
+void sendResponse(char const *response) {
+    Serial.printf("Send Response: %s\n", response);
+    bleuart.write(response, strlen(response)*sizeof(char));
+}
+
 void loop() {
+  // Echo received data
+  if ( Bluefruit.connected() && bleuart.notifyEnabled() )
+  {
+    while ( bleuart.available() )
+    {
+      int command = bleuart.read();
+
+      switch (command) {
+        case 'h': {
+          Serial.println("Received H command!!");
+          ws2812fx.stop();
+          ws2812fx.setMode(FX_MODE_COLOR_WIPE);
+          ws2812fx.start();
+
+          sendResponse("OK");
+        }
+      }
+    }
+  }
+
   ws2812fx.service();
   waitForEvent();
 }
+
+
+
