@@ -1,8 +1,13 @@
 #include <WS2812FX.h>
 #include <bluefruit.h>
 
+#include "patterns.h"
+
 #define LED_COUNT 24
 #define LED_PIN 16
+#define DATA_BUFFER_LENGTH 256
+
+#define BUTTON_PIN 11
 
 #ifndef WORKERBEE_NAME
   #define WORKERBEE_NAME "Worker Bee"
@@ -14,17 +19,24 @@ BLEDis  bledis;
 BLEUart bleuart;
 BLEBas  blebas;
 
+uint8_t lightMode = 0;
+char dataBuffer[DATA_BUFFER_LENGTH];
+uint16_t dataOffset = 0;
+
 void setup() {
   Serial.begin(115200);
   Serial.print("Buzzkill Worker Bee: ");
   Serial.println(WORKERBEE_NAME);
   Serial.println("--------------------------------");
 
+  reset();
+
   setupLights();
   Serial.println("Lights initialized and ready to go...");
 
   setupBluetooth();
   Serial.println("Bluetooth initialized, waiting for central....");
+
 }
 
 void setupLights() {
@@ -106,6 +118,8 @@ void disconnect_callback(uint16_t conn_handle, uint8_t reason)
   (void) conn_handle;
   (void) reason;
 
+  reset();
+
   Serial.println();
   Serial.println("Disconnected");
 }
@@ -115,27 +129,56 @@ void sendResponse(char const *response) {
     bleuart.write(response, strlen(response)*sizeof(char));
 }
 
-void loop() {
-  // Echo received data
+void reset() {
+  memset(dataBuffer, 0, DATA_BUFFER_LENGTH);
+  dataOffset = 0;
+}
+
+void runCommand() {
+  const char* pattern = (const char*)(dataBuffer);
+  Serial.print("PATTERN:");
+  Serial.println(pattern);
+
+  uint8_t mode = modeForPattern(pattern);
+  Serial.print("MODE: ");
+  Serial.println(mode);
+
+  ws2812fx.stop();
+  ws2812fx.setMode(mode);
+  ws2812fx.start();
+
+  reset();
+}
+
+void readAndDispatchFromBluetooth() {
   if ( Bluefruit.connected() && bleuart.notifyEnabled() )
   {
     while ( bleuart.available() )
     {
-      int command = bleuart.read();
+      //The idea here is to read one byte at a time until we hit  a 32 bit null
+      //terminator. Then we can dispatch the command to do stuff.
+      bleuart.read(dataBuffer + dataOffset, 1);
+      Serial.print("DATA: ");
+      Serial.println((const char*)dataBuffer);
 
-      switch (command) {
-        case 'h': {
-          Serial.println("Received H command!!");
-          ws2812fx.stop();
-          ws2812fx.setMode(FX_MODE_COLOR_WIPE);
-          ws2812fx.start();
+      const char lastChar = (const char)(*(dataBuffer + dataOffset));
+      Serial.print("LAST CHAR: ");
+      Serial.println(lastChar);
 
-          sendResponse("OK");
-        }
+      dataOffset++;
+      Serial.print("DATA OFFSET: ");
+      Serial.println(dataOffset);
+
+      if (lastChar == 0) {
+        Serial.println("FOUND TERMINATOR");
+        runCommand();
       }
     }
   }
+}
 
+void loop() {
+  readAndDispatchFromBluetooth();
   ws2812fx.service();
   waitForEvent();
 }
