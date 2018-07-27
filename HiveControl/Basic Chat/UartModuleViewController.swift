@@ -16,16 +16,24 @@ import CoreBluetooth
 class UartModuleViewController: UIViewController, CBPeripheralManagerDelegate, UITextViewDelegate, UITextFieldDelegate {
     
     //UI
-    @IBOutlet weak var baseTextView: UITextView!
+    //@IBOutlet weak var baseTextView: UITextView!
     @IBOutlet weak var sendButton: UIButton!
     @IBOutlet weak var inputTextField: UITextField!
     @IBOutlet weak var scrollView: UIScrollView!
     @IBOutlet weak var switchUI: UISwitch!
     //Data
+    @IBOutlet weak var debugLabel: UILabel!
     var peripheralManager: CBPeripheralManager?
     var peripheral: CBPeripheral!
     var peripheralsArray: [CBPeripheral] = []
     var numOfPeripherals  = 1
+    var speed = 50
+    var bright = 50
+    var red = 255
+    var green = 0
+    var blue = 0
+    var selectedColor = UIColor (hue: 1, saturation: 1, brightness: 1, alpha: 1)
+    
     private var consoleAsciiText:NSAttributedString? = NSAttributedString(string: "")
     
     
@@ -33,17 +41,17 @@ class UartModuleViewController: UIViewController, CBPeripheralManagerDelegate, U
         super.viewDidLoad()
         
         self.navigationItem.backBarButtonItem = UIBarButtonItem(title:"Back", style:.plain, target:nil, action:nil)
-        self.baseTextView.delegate = self
+        /*self.baseTextView.delegate = self
         self.inputTextField.delegate = self
         //Base text view setup
         self.baseTextView.layer.borderWidth = 3.0
         self.baseTextView.layer.borderColor = UIColor.blue.cgColor
         self.baseTextView.layer.cornerRadius = 3.0
-        self.baseTextView.text = ""
+        self.baseTextView.text = ""*/
         //Input Text Field setup
-        self.inputTextField.layer.borderWidth = 2.0
-        self.inputTextField.layer.borderColor = UIColor.blue.cgColor
-        self.inputTextField.layer.cornerRadius = 3.0
+        //self.inputTextField.layer.borderWidth = 2.0
+        //self.inputTextField.layer.borderColor = UIColor.blue.cgColor
+        //elf.inputTextField.layer.cornerRadius = 3.0
         //Create and start the peripheral manager
         peripheralManager = CBPeripheralManager(delegate: self, queue: nil)
         //-Notification for updating the text view with incoming text
@@ -51,7 +59,7 @@ class UartModuleViewController: UIViewController, CBPeripheralManagerDelegate, U
     }
     
     override func viewDidAppear(_ animated: Bool) {
-        self.baseTextView.text = ""
+        //self.baseTextView.text = ""
         
         
     }
@@ -72,28 +80,80 @@ class UartModuleViewController: UIViewController, CBPeripheralManagerDelegate, U
             let myAttributes2 = [NSAttributedStringKey.font: myFont!, NSAttributedStringKey.foregroundColor: UIColor.red]
             let attribString = NSAttributedString(string: "[Incoming]: " + (characteristicASCIIValue as String) + appendString, attributes: myAttributes2)
             let newAsciiText = NSMutableAttributedString(attributedString: self.consoleAsciiText!)
-            self.baseTextView.attributedText = NSAttributedString(string: characteristicASCIIValue as String , attributes: myAttributes2)
+            //self.baseTextView.attributedText = NSAttributedString(string: characteristicASCIIValue as String , attributes: myAttributes2)
             
             newAsciiText.append(attribString)
             
             self.consoleAsciiText = newAsciiText
-            self.baseTextView.attributedText = self.consoleAsciiText
+           // self.baseTextView.attributedText = self.consoleAsciiText
             
         }
     }
     
     @IBAction func clickSendAction(_ sender: AnyObject) {
-        outgoingData()
+        outgoingData(inputText: inputTextField.text!)
         
     }
     
+    @IBAction func button1(_ sender: UIButton) {
+        
+        outgoingData (inputText: "TCRB" + "," + String(speed) + "," + String(bright) + "," + String(red) + "," + String(green) + "," + String(blue))
+    }
     
+    @IBAction func button2(_ sender: UIButton) {
+        outgoingData (inputText: "TFDR" + "," + String(speed) + "," + String(bright) + "," + String(red) + "," + String(green) + "," + String(blue))
+        
+    }
+    @IBAction func button3(_ sender: UIButton) {
+         outgoingData (inputText: "RBCY" + "," + String(speed) + "," + String(bright) + "," + String(red) + "," + String(green) + "," + String(blue))
+    }
+    @IBAction func button4(_ sender: Any) {
+        outgoingData (inputText: "MOHW" + "," + String(speed) + "," + String(bright) + "," + String(red) + "," + String(green) + "," + String(blue))
+    }
+    @IBAction func button5(_ sender: UIButton) {
+        outgoingData (inputText: "MOCC" + "," + String(speed) + "," + String(bright) + "," + String(red) + "," + String(green) + "," + String(blue))
+    }
     
-    func outgoingData () {
+    @IBAction func button6(_ sender: UIButton) {
+        outgoingData (inputText: "LRSC" + "," + String(speed) + "," + String(bright) + "," + String(red) + "," + String(green) + "," + String(blue))
+    }
+    
+    @IBAction func button7(_ sender: UIButton) {
+        outgoingData (inputText: "TKRD" + "," + String(speed) + "," + String(bright) + "," + String(red) + "," + String(green) + "," + String(blue))
+    }
+    @IBAction func button8(_ sender: UIButton) {
+    }
+    
+    @IBAction func speedSlider(_ sender: UISlider) {
+        speed = Int(sender.value)
+    }
+
+    
+    @IBAction func colorSlider(_ sender: GradientSlider) {
+        
+        selectedColor = UIColor(hue: sender.value, saturation: 1.0, brightness: 1.0, alpha: 1.0)
+        sender.thumbColor = selectedColor
+       
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        selectedColor.getRed(&r, green: &g, blue: &b, alpha: &a)
+        
+        red = (Int(r*255))
+        blue = (Int(b*255))
+        green = (Int(g*255))
+        print("red: \(red), green: \(green), blue: \(blue)")
+    }
+    
+
+    @IBAction func brightSlider(_ sender: UISlider) {
+        bright = Int(sender.value)
+        
+    }
+    
+    func outgoingData (inputText : String) {
         let appendString = "\n"
         
        
-       let inputText = inputTextField.text
+       //let inputText = inputTextField.text
         //var dataString = inputText + "\0"
         //var timeStampString = "\(CACurrentMediaTime())" + "\0"
        //print (timeStampString)
@@ -120,7 +180,7 @@ class UartModuleViewController: UIViewController, CBPeripheralManagerDelegate, U
             txCharacteristic = txArray[mapIndex]
             print (blePeripheral)
             
-            writeValue(data: inputText! + "\0")
+            writeValue(data: inputText + "\0")
             print("                    ")
             print (txCharacteristic)
             print("                   ")
@@ -136,16 +196,17 @@ class UartModuleViewController: UIViewController, CBPeripheralManagerDelegate, U
       
        
         
-        let attribString = NSAttributedString(string: "[Outgoing]: " + inputText! + appendString, attributes: myAttributes1)
+        let attribString = NSAttributedString(string: "[Outgoing]: " + inputText + appendString, attributes: myAttributes1)
         let newAsciiText = NSMutableAttributedString(attributedString: self.consoleAsciiText!)
         newAsciiText.append(attribString)
         
         
         
-        consoleAsciiText = newAsciiText
-        baseTextView.attributedText = consoleAsciiText
+        consoleAsciiText = attribString
+        debugLabel.text = inputText
+        //baseTextView.attributedText = consoleAsciiText
         //erase what's in the text field
-        inputTextField.text = ""
+        //inputTextField.text = ""
         
     }
     
@@ -182,11 +243,11 @@ class UartModuleViewController: UIViewController, CBPeripheralManagerDelegate, U
     
     //MARK: UITextViewDelegate methods
     func textViewShouldBeginEditing(_ textView: UITextView) -> Bool {
-        if textView === baseTextView {
+        /*if textView === baseTextView {
             //tapping on consoleview dismisses keyboard
             inputTextField.resignFirstResponder()
             return false
-        }
+        }*/
         return true
     }
     
@@ -210,7 +271,7 @@ class UartModuleViewController: UIViewController, CBPeripheralManagerDelegate, U
         print("Device subscribe to characteristic")
     }
     
-    //This on/off switch sends a value of 1 and 0 to the Arduino
+    /*//This on/off switch sends a value of 1 and 0 to the Arduino
     //This can be used as a switch or any thing you'd like
     @IBAction func switchAction(_ sender: Any) {
         if switchUI.isOn {
@@ -223,7 +284,7 @@ class UartModuleViewController: UIViewController, CBPeripheralManagerDelegate, U
             writeCharacteristic(val: 0)
             print(writeCharacteristic)
         }
-    }
+    }*/
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         self.view.endEditing(true)
@@ -231,7 +292,7 @@ class UartModuleViewController: UIViewController, CBPeripheralManagerDelegate, U
     
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
         textField.resignFirstResponder()
-        outgoingData()
+        //outgoingData(inputText: "TEST Data")
         return(true)
     }
     
