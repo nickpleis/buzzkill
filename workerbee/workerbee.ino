@@ -3,17 +3,21 @@
 
 #include "patterns.h"
 
-#define LED_COUNT 24
-#define LED_PIN 16
 #define DATA_BUFFER_LENGTH 256
 
-#define BUTTON_PIN 11
+#define LED1_COUNT 24
+#define LED1_PIN 15
+
+#define LED2_COUNT 24
+#define LED2_PIN 16
 
 #ifndef WORKERBEE_NAME
-  #define WORKERBEE_NAME "Worker Bee"
+  #define WORKERBEE_NAME "Worker Bee Ring 24 #2"
 #endif
 
-WS2812FX ws2812fx = WS2812FX(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
+WS2812FX ws2812fx1 = WS2812FX(LED1_COUNT, LED1_PIN, NEO_GRB + NEO_KHZ800);
+WS2812FX ws2812fx2 = WS2812FX(LED2_COUNT, LED2_PIN, NEO_GRB + NEO_KHZ800);
+
 
 BLEDis  bledis;
 BLEUart bleuart;
@@ -67,11 +71,20 @@ void setup() {
 }
 
 void setupLights() {
-  ws2812fx.init();
-  ws2812fx.setBrightness(100);
-  ws2812fx.setSpeed(10000);
-  ws2812fx.setMode(FX_MODE_THEATER_CHASE_RAINBOW);
-  ws2812fx.start();
+  ws2812fx1.init();
+  ws2812fx2.init();
+
+  ws2812fx1.setBrightness(100);
+  ws2812fx2.setBrightness(100);
+
+  ws2812fx1.setSpeed(10000);
+  ws2812fx2.setSpeed(10000);
+
+  ws2812fx1.setMode(FX_MODE_THEATER_CHASE_RAINBOW);
+  ws2812fx2.setMode(FX_MODE_THEATER_CHASE_RAINBOW);
+
+  ws2812fx1.start();
+  ws2812fx2.start();
 }
 
 void setupBluetooth() {
@@ -224,6 +237,16 @@ void parseParams(CmdParams& params, char* cmdString)
   }
 }
 
+void RunCommandOnPin(WS2812FX& fx, uint8_t mode, float normalizedSpeed, const CmdParams& params)
+{
+  fx.stop();
+  fx.setMode(mode);
+  fx.setSpeed(normalizedSpeed);
+  fx.setBrightness(params.mBrightness);
+  fx.setColor(params.mRed, params.mGreen, params.mBlue);
+  fx.start();
+}
+
 void runCommand()
 {
   CmdParams params;
@@ -260,13 +283,9 @@ void runCommand()
 
   Serial.print("NORMALIZED SPEED: ");
   Serial.println(normalizedSpeed);
-  
-  ws2812fx.stop();
-  ws2812fx.setMode(mode);
-  ws2812fx.setSpeed(normalizedSpeed);
-  ws2812fx.setBrightness(params.mBrightness);
-  ws2812fx.setColor(params.mRed, params.mGreen, params.mBlue);
-  ws2812fx.start();
+
+  RunCommandOnPin(ws2812fx1, mode, normalizedSpeed, params);
+  RunCommandOnPin(ws2812fx2, mode, normalizedSpeed, params);
 
   reset();
 }
@@ -281,6 +300,8 @@ void readAndDispatchFromBluetooth()
       //terminator. Then we can dispatch the command to do stuff.
       bleuart.read(dataBuffer + dataOffset, 1);
       const char lastChar = (const char)(*(dataBuffer + dataOffset));
+      Serial.print("LAST CHAR: ");
+      Serial.println(lastChar);
     
       dataOffset++;
       
@@ -295,7 +316,10 @@ void readAndDispatchFromBluetooth()
 void loop()
 {
   readAndDispatchFromBluetooth();
-  ws2812fx.service();
+
+  ws2812fx1.service();
+  ws2812fx2.service();
+
   waitForEvent();
 }
 
