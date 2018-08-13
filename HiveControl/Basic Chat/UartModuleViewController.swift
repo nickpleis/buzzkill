@@ -121,13 +121,21 @@ class UartModuleViewController: UIViewController, CBPeripheralManagerDelegate, U
     @IBAction func button7(_ sender: UIButton) {
         outgoingData (inputText: "TKRD" + "," + String(speed) + "," + String(bright) + "," + String(red) + "," + String(green) + "," + String(blue))
     }
+
     @IBAction func button8(_ sender: UIButton) {
+    }
+    
+    @IBAction func maxButton(_ sender: UIButton) {
+        outgoingData(inputText: "MAXX");
+    }
+    
+    @IBAction func offButton(_ sender: UIButton) {
+        outgoingData(inputText: "OFFF");
     }
     
     @IBAction func speedSlider(_ sender: UISlider) {
         speed = Int(sender.value)
     }
-
     
     @IBAction func colorSlider(_ sender: GradientSlider) {
         

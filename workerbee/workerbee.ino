@@ -260,7 +260,22 @@ void runCommand()
 
   Serial.print("NORMALIZED SPEED: ");
   Serial.println(normalizedSpeed);
-  
+
+  if (mode == CUSTOM_MODE_MAX)
+  {
+    mode = FX_MODE_STATIC;
+    params.mRed = 255;
+    params.mGreen = 255;
+    params.mBlue = 255;
+    params.mBrightness = 100;
+  } else if (mode == CUSTOM_MODE_OFF) {
+    mode = FX_MODE_STATIC;
+    params.mRed = 0;
+    params.mGreen = 0;
+    params.mBlue = 0;
+    params.mBrightness = 0;
+  }
+ 
   ws2812fx.stop();
   ws2812fx.setMode(mode);
   ws2812fx.setSpeed(normalizedSpeed);
