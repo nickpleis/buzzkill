@@ -3,14 +3,15 @@
 
 #include "patterns.h"
 
-#define LED_COUNT 99
+#define LED_COUNT 102
 #define LED_PIN 16
 #define DATA_BUFFER_LENGTH 256
+#define MAX_SPEED 65535
 
 #define BUTTON_PIN 11
 
 #ifndef WORKERBEE_NAME
-  #define WORKERBEE_NAME "Worker Bee"
+  #define WORKERBEE_NAME "Test Workerbee"
 #endif
 
 WS2812FX ws2812fx = WS2812FX(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
@@ -19,10 +20,6 @@ BLEDis  bledis;
 BLEUart bleuart;
 BLEBas  blebas;
 
-uint8_t lightMode = 0;
-char dataBuffer[DATA_BUFFER_LENGTH];
-uint16_t dataOffset = 0;
-
 // The app sends a string containing all of the information we need to execute a pattern.
 // The string is formatted as PATTERN,SPEED,BRIGHTNESS,R,G,B
 // PATTERN: 4 character code indicating the pattern to display
@@ -30,16 +27,17 @@ uint16_t dataOffset = 0;
 // BRIGHTNESS: Number from 1-100 giving the brightness
 // R,G,B: Numbers giving the single byte value for Red, Green, and Blue 
 
-struct CmdParams
-{
-  CmdParams()
-  {
+struct CmdParams {
+  CmdParams() { reset(); }
+
+  void reset() {
     mPattern = FX_MODE_THEATER_CHASE_RAINBOW;
     mSpeed = 50;
     mBrightness = 50;
     mRed = 255;
     mGreen = 0;
     mBlue = 0;
+    mExecuteAt = 0;
   }
   
   String mPattern;
@@ -48,7 +46,16 @@ struct CmdParams
   unsigned char mRed;
   unsigned char mBlue;
   unsigned char mGreen;
+  int mExecuteAt;
 };
+
+uint8_t lightMode = 0;
+char dataBuffer[DATA_BUFFER_LENGTH];
+uint16_t dataOffset = 0;
+
+CmdParams queuedCmd;
+unsigned long referenceTime = 0;
+bool commandQueued = false;
 
 void setup() {
   Serial.begin(115200);
@@ -63,7 +70,6 @@ void setup() {
 
   setupBluetooth();
   Serial.println("Bluetooth initialized, waiting for central....");
-
 }
 
 void setupLights() {
@@ -131,11 +137,11 @@ void connect_callback(uint16_t conn_handle)
 {
   Serial.print("Connect callback");
 
-  char central_name[32] = { 0 };
-  Bluefruit.Gap.getPeerName(conn_handle, central_name, sizeof(central_name));
-
-  Serial.print("Connected to ");
-  Serial.println(central_name);
+//  char central_name[32] = { 0 };
+//  Bluefruit.Gap.getPeerName(conn_handle, central_name, sizeof(central_name));
+//
+//  Serial.print("Connected to ");
+//  Serial.println(central_name);
 
   Serial.println("Waiting for commands...");
 }
@@ -159,6 +165,8 @@ void sendResponse(char const *response) {
 void reset() {
   memset(dataBuffer, 0, DATA_BUFFER_LENGTH);
   dataOffset = 0;
+  queuedCmd.reset();
+  commandQueued = false;
 }
 
 void parseParams(CmdParams& params, char* cmdString)
@@ -222,41 +230,45 @@ void parseParams(CmdParams& params, char* cmdString)
     String strBlue = rawBlue;
     params.mBlue = (char)strBlue.toInt();
   }
+
+  char* rawExecuteAt = strtok(NULL, ",");
+  if (rawExecuteAt != NULL)
+  {
+    String strExecuteAt = rawExecuteAt;
+    params.mExecuteAt = strExecuteAt.toInt();
+  }
 }
 
 void runCommand()
 {
-  CmdParams params;
-  parseParams(params, (char*)dataBuffer);
-
   Serial.print("PATTERN:");
-  Serial.println(params.mPattern);
+  Serial.println(queuedCmd.mPattern);
 
-  uint8_t mode = modeForPattern(params.mPattern);
+  uint8_t mode = modeForPattern(queuedCmd.mPattern);
   Serial.print("MODE: ");
   Serial.println(mode);
 
   Serial.print("SPEED: ");
-  Serial.println(params.mSpeed);
+  Serial.println(queuedCmd.mSpeed);
 
   Serial.print("BRIGHTNESS: ");
-  Serial.println(params.mBrightness);
+  Serial.println(queuedCmd.mBrightness);
 
   Serial.print("RED: ");
-  Serial.println(params.mRed);
+  Serial.println(queuedCmd.mRed);
 
   Serial.print("GREEN: ");
-  Serial.println(params.mGreen);
+  Serial.println(queuedCmd.mGreen);
 
   Serial.print("BLUE: ");
-  Serial.println(params.mBlue);
+  Serial.println(queuedCmd.mBlue);
 
-  // Speed in ws218fx is defined roughly as an int from 0-3000 with 3000 being the SLOWEST.
-  // So we normalize our 1-100 to that by calculating what percentage of 3000 we are, but
+  // Speed in ws218fx is defined roughly as an int from 0-MAX_SPEED with MAX_SPEED being the SLOWEST.
+  // So we normalize our 1-100 to that by calculating what percentage of MAX_SPEED we are, but
   // you know..reversed
-  float normalizedSpeed = (float)params.mSpeed/100;
+  float normalizedSpeed = (float)queuedCmd.mSpeed/100;
   normalizedSpeed = 1 - normalizedSpeed;
-  normalizedSpeed *= 3000;
+  normalizedSpeed *= MAX_SPEED;
 
   Serial.print("NORMALIZED SPEED: ");
   Serial.println(normalizedSpeed);
@@ -264,23 +276,26 @@ void runCommand()
   if (mode == CUSTOM_MODE_MAX)
   {
     mode = FX_MODE_STATIC;
-    params.mRed = 255;
-    params.mGreen = 255;
-    params.mBlue = 255;
-    params.mBrightness = 100;
+    queuedCmd.mRed = 255;
+    queuedCmd.mGreen = 255;
+    queuedCmd.mBlue = 255;
+    queuedCmd.mBrightness = 100;
   } else if (mode == CUSTOM_MODE_OFF) {
     mode = FX_MODE_STATIC;
-    params.mRed = 0;
-    params.mGreen = 0;
-    params.mBlue = 0;
-    params.mBrightness = 0;
+    queuedCmd.mRed = 0;
+    queuedCmd.mGreen = 0;
+    queuedCmd.mBlue = 0;
+    queuedCmd.mBrightness = 0;
   }
+
+  Serial.print("Execute At: ");
+  Serial.println(queuedCmd.mExecuteAt);
  
   ws2812fx.stop();
   ws2812fx.setMode(mode);
   ws2812fx.setSpeed(normalizedSpeed);
-  ws2812fx.setBrightness(params.mBrightness);
-  ws2812fx.setColor(params.mRed, params.mGreen, params.mBlue);
+  ws2812fx.setBrightness(queuedCmd.mBrightness);
+  ws2812fx.setColor(queuedCmd.mRed, queuedCmd.mGreen, queuedCmd.mBlue);
   ws2812fx.start();
 
   reset();
@@ -300,8 +315,10 @@ void readAndDispatchFromBluetooth()
       dataOffset++;
       
       if (lastChar == 0) {
-        Serial.println("FOUND TERMINATOR");
-        runCommand();
+        Serial.println("Parsing Parameters");
+        parseParams(queuedCmd, (char*)dataBuffer);
+        referenceTime = millis();
+        commandQueued = true;
       }
     }
   }
@@ -311,6 +328,28 @@ void loop()
 {
   readAndDispatchFromBluetooth();
   ws2812fx.service();
+
+  if (commandQueued)
+  {
+    Serial.print("Command queued for: ");
+    Serial.println(queuedCmd.mExecuteAt);
+
+    unsigned long currentTime = millis();
+    Serial.print("Current time: ");
+    Serial.println(currentTime);
+
+    Serial.print("Reference time: ");
+    Serial.println(referenceTime);
+
+    Serial.print("MS since command received: ");
+    Serial.println((currentTime - referenceTime));
+
+    if ((currentTime - referenceTime) > queuedCmd.mExecuteAt)
+    {
+      runCommand();
+    }
+  }
+
   waitForEvent();
 }
 
