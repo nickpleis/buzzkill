@@ -293,6 +293,9 @@
                                                 <rect key="frame" x="271" y="186" width="91" height="48"/>
                                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                                 <state key="normal" title="Button" image="OffButtonImage"/>
+                                                <connections>
+                                                    <action selector="offButton:" destination="aQA-m6-Bjv" eventType="touchUpInside" id="CAM-55-iRa"/>
+                                                </connections>
                                             </button>
                                         </subviews>
                                         <color key="backgroundColor" red="0.99607843137254903" green="0.75686274509803919" blue="0.10588235294117647" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>

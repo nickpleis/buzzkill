@@ -5,8 +5,8 @@ struct Pattern {
   String name;
 };
 
-#define CUSTOM_MODE_OFF     0xFFFF
-#define CUSTOM_MODE_MAX     0xFFFE
+#define CUSTOM_MODE_OFF     0xFF
+#define CUSTOM_MODE_MAX     0xFE
 
 Pattern gPatterns[NUM_PATTERNS] = {
   { FX_MODE_STATIC, "MOST" },

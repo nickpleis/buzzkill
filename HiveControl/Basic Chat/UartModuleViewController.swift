@@ -171,7 +171,7 @@ class UartModuleViewController: UIViewController, CBPeripheralManagerDelegate, U
         var totalDevices = peripheralsArray.count
         var counter = 0
         var mapIndex = 0
-        var CurrentTime = CACurrentMediaTime();
+        var baseTime = NSDate().timeIntervalSince1970;
         //print ("CurrentTime:")
         //print (CurrentTime)
         

@@ -3,7 +3,7 @@
 
 #include "patterns.h"
 
-#define LED_COUNT 24
+#define LED_COUNT 99
 #define LED_PIN 16
 #define DATA_BUFFER_LENGTH 256
 
