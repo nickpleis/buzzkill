@@ -1,9 +1,12 @@
-#define NUM_PATTERNS 56
+#define NUM_PATTERNS 58
 
 struct Pattern {
   unsigned int mode;
   String name;
 };
+
+#define CUSTOM_MODE_OFF     0xFF
+#define CUSTOM_MODE_MAX     0xFE
 
 Pattern gPatterns[NUM_PATTERNS] = {
   { FX_MODE_STATIC, "MOST" },
@@ -32,7 +35,7 @@ Pattern gPatterns[NUM_PATTERNS] = {
   { FX_MODE_SPARKLE, "MOSP" },
   { FX_MODE_FLASH_SPARKLE, "FLSP" },
   { FX_MODE_HYPER_SPARKLE, "HYSP" },
-  { FX_MODE_STROBE, "MOST" },
+  { FX_MODE_STROBE, "MSTR" },
   { FX_MODE_STROBE_RAINBOW, "STRB" },
   { FX_MODE_MULTI_STROBE, "STMU" },
   { FX_MODE_BLINK_RAINBOW, "BLRB" },
@@ -61,7 +64,9 @@ Pattern gPatterns[NUM_PATTERNS] = {
   { FX_MODE_HALLOWEEN, "MOHW" },
   { FX_MODE_BICOLOR_CHASE, "BICH" },
   { FX_MODE_TRICOLOR_CHASE, "TRCH" },
-  { FX_MODE_ICU, "MOIC" }
+  { FX_MODE_ICU, "MOIC" },
+  { CUSTOM_MODE_OFF, "OFFF" },
+  { CUSTOM_MODE_MAX, "MAXX" }
 };
 
 uint8_t modeForPattern(String name) {

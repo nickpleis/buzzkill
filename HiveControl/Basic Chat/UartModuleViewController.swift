@@ -121,13 +121,21 @@ class UartModuleViewController: UIViewController, CBPeripheralManagerDelegate, U
     @IBAction func button7(_ sender: UIButton) {
         outgoingData (inputText: "TKRD" + "," + String(speed) + "," + String(bright) + "," + String(red) + "," + String(green) + "," + String(blue))
     }
+
     @IBAction func button8(_ sender: UIButton) {
+    }
+    
+    @IBAction func maxButton(_ sender: UIButton) {
+        outgoingData(inputText: "MAXX" + "," + String(speed) + "," + String(bright) + "," + String(red) + "," + String(green) + "," + String(blue));
+    }
+    
+    @IBAction func offButton(_ sender: UIButton) {
+        outgoingData(inputText: "OFFF" + "," + String(speed) + "," + String(bright) + "," + String(red) + "," + String(green) + "," + String(blue));
     }
     
     @IBAction func speedSlider(_ sender: UISlider) {
         speed = Int(sender.value)
     }
-
     
     @IBAction func colorSlider(_ sender: GradientSlider) {
         
@@ -163,13 +171,14 @@ class UartModuleViewController: UIViewController, CBPeripheralManagerDelegate, U
         var totalDevices = peripheralsArray.count
         var counter = 0
         var mapIndex = 0
-        var CurrentTime = CACurrentMediaTime();
-        //print ("CurrentTime:")
-        //print (CurrentTime)
-        
-        
+        var executeInMs = totalDevices * 30; //we budget 30ms transmission time per device
+
         while counter < totalDevices
         {
+            var sendText = inputText;
+            sendText += "," + String(executeInMs);
+            executeInMs -= 30;
+
             print ("Sending Data to peripheral:")
             blePeripheral = peripheralsArray[counter]
             print (counter)
@@ -180,7 +189,7 @@ class UartModuleViewController: UIViewController, CBPeripheralManagerDelegate, U
             txCharacteristic = txArray[mapIndex]
             print (blePeripheral)
             
-            writeValue(data: inputText + "\0")
+            writeValue(data: sendText + "\0")
             print("                    ")
             print (txCharacteristic)
             print("                   ")
